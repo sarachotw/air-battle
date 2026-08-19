@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<title>哥哥大魔王 AIR BATTLE</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  font-family:
+  -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  "Noto Sans TC",
+  Arial,
+  sans-serif;
+  background:#071426;
+}
+
+body{
+  touch-action:none;
+}
+
+#game{
+  position:relative;
+  width:100vw;
+  height:100dvh;
+  overflow:hidden;
+
+  background:
+    radial-gradient(circle at 15% 15%, rgba(255,255,255,.8) 0 1px, transparent 2px),
+    radial-gradient(circle at 75% 25%, rgba(255,255,255,.65) 0 1px, transparent 2px),
+    radial-gradient(circle at 35% 45%, rgba(255,255,255,.6) 0 1px, transparent 2px),
+    radial-gradient(circle at 88% 70%, rgba(255,255,255,.7) 0 1px, transparent 2px),
+    linear-gradient(#071426,#103a68 58%,#24699b);
+}
+
+/* =========================
+   TOP HUD
+========================= */
+
+.hud{
+  position:absolute;
+  z-index:50;
+  top:0;
+  left:0;
+  width:100%;
+  padding:
+    calc(12px + env(safe-area-inset-top))
+    14px
+    8px;
+
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  color:white;
+  pointer-events:none;
+}
+
+.scoreBox{
+  font-weight:900;
+  text-shadow:0 2px 6px rgba(0,0,0,.5);
+}
+
+.scoreTitle{
+  font-size:12px;
+  opacity:.8;
+}
+
+#score{
+  font-size:28px;
+}
+
+.hpArea{
+  width:55%;
+  max-width:260px;
+  text-align:right;
+}
+
+.bossTitle{
+  font-size:13px;
+  font-weight:900;
+  margin-bottom:4px;
+}
+
+.hpBar{
+  width:100%;
+  height:16px;
+  border:2px solid white;
+  border-radius:20px;
+  background:rgba(0,0,0,.35);
+  overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+
+#hpFill{
+  width:100%;
+  height:100%;
+  background:linear-gradient(90deg,#ffdf43,#ff475e);
+  transition:width .2s;
+}
+
+/* =========================
+   BOSS
+========================= */
+
+#boss{
+  position:absolute;
+
+  width:118px;
+  height:118px;
+
+  top:100px;
+  left:50%;
+  transform:translateX(-50%);
+
+  border-radius:50%;
+  border:5px solid white;
+
+  box-shadow:
+    0 0 0 5px rgba(255,73,94,.65),
+    0 8px 25px rgba(0,0,0,.5);
+
+  overflow:hidden;
+
+  z-index:20;
+}
+
+/*
+照片是直式全身照。
+
+這裡用原圖當背景，
+調整 background-position，
+只留下頭部的位置。
+*/
+
+#bossFace{
+  position:absolute;
+  inset:0;
+
+  background-image:url("son.jpg");
+  background-repeat:no-repeat;
+
+  /*
+  你的照片人物在左側，
+  這組數值先幫你抓接近頭部。
+  */
+  background-size:430%;
+  background-position:11% 20%;
+}
+
+#bossName{
+  position:absolute;
+  z-index:22;
+  top:226px;
+  width:100%;
+  text-align:center;
+  color:white;
+  font-weight:900;
+  font-size:18px;
+  text-shadow:0 2px 5px #000;
+}
+
+#boss.hit{
+  animation:bossHit .18s;
+}
+
+@keyframes bossHit{
+  0%{
+    filter:brightness(2);
+  }
+  25%{
+    transform:translateX(-50%) translateX(-10px) rotate(-7deg);
+  }
+  60%{
+    transform:translateX(-50%) translateX(10px) rotate(7deg);
+  }
+  100%{
+    transform:translateX(-50%);
+  }
+}
+
+/* =========================
+   CLOUDS
+========================= */
+
+.cloud{
+  position:absolute;
+  opacity:.55;
+  font-size:60px;
+  z-index:2;
+  pointer-events:none;
+}
+
+.c1{
+  top:27%;
+  left:-20%;
+  animation:cloudMove 16s linear infinite;
+}
+
+.c2{
+  top:52%;
+  left:-40%;
+  animation:cloudMove 23s linear infinite;
+  animation-delay:-8s;
+  font-size:85px;
+}
+
+@keyframes cloudMove{
+  from{
+    transform:translateX(0);
+  }
+
+  to{
+    transform:translateX(150vw);
+  }
+}
+
+/* =========================
+   PLANE
+========================= */
+
+#plane{
+  position:absolute;
+  z-index:25;
+
+  width:76px;
+  height:70px;
+
+  bottom:88px;
+  left:50%;
+  transform:translateX(-50%);
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  font-size:64px;
+
+  filter:drop-shadow(0 5px 5px rgba(0,0,0,.4));
+
+  user-select:none;
+}
+
+/* =========================
+   BULLETS
+========================= */
+
+.bullet{
+  position:absolute;
+
+  width:13px;
+  height:28px;
+
+  border-radius:15px;
+
+  background:
+    linear-gradient(
+      #fff,
+      #fff170 32%,
+      #ff9f43 70%,
+      #ff4757
+    );
+
+  box-shadow:
+    0 0 7px #fff,
+    0 0 15px #ffe450,
+    0 0 22px #ff8c42;
+
+  z-index:15;
+}
+
+/* =========================
+   HIT FX
+========================= */
+
+.hitText{
+  position:absolute;
+
+  font-size:26px;
+  font-weight:1000;
+
+  color:#fff36d;
+
+  text-shadow:
+    2px 2px 0 #ff4757,
+    0 3px 8px rgba(0,0,0,.7);
+
+  z-index:40;
+
+  pointer-events:none;
+
+  animation:hitPop .65s forwards;
+}
+
+@keyframes hitPop{
+  0%{
+    transform:scale(.5);
+    opacity:0;
+  }
+
+  30%{
+    transform:scale(1.25);
+    opacity:1;
+  }
+
+  100%{
+    transform:translateY(-55px) scale(.8);
+    opacity:0;
+  }
+}
+
+/* =========================
+   CONTROLS
+========================= */
+
+.controls{
+  position:absolute;
+
+  z-index:60;
+
+  bottom:
+    calc(12px + env(safe-area-inset-bottom));
+
+  left:0;
+
+  width:100%;
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  padding:0 18px;
+}
+
+.moveButtons{
+  display:flex;
+  gap:12px;
+}
+
+.controlBtn{
+  border:0;
+
+  width:62px;
+  height:62px;
+
+  border-radius:50%;
+
+  background:
+    linear-gradient(#ffffff,#c7eaff);
+
+  color:#184a74;
+
+  font-size:27px;
+
+  font-weight:900;
+
+  box-shadow:
+    0 6px 0 #7da8c5,
+    0 9px 15px rgba(0,0,0,.35);
+
+  touch-action:none;
+}
+
+.controlBtn:active{
+  transform:translateY(5px);
+  box-shadow:
+    0 1px 0 #7da8c5;
+}
+
+#fireBtn{
+  width:82px;
+  height:82px;
+
+  background:
+    linear-gradient(#ffec58,#ff7a38);
+
+  color:white;
+
+  font-size:17px;
+
+  border:4px solid white;
+
+  box-shadow:
+    0 6px 0 #b93e20,
+    0 9px 15px rgba(0,0,0,.4);
+}
+
+/* =========================
+   START / WIN SCREEN
+========================= */
+
+.overlay{
+  position:absolute;
+  inset:0;
+
+  z-index:100;
+
+  background:
+    rgba(3,10,25,.78);
+
+  backdrop-filter:blur(5px);
+
+  display:flex;
+
+  justify-content:center;
+
+  align-items:center;
+
+  padding:25px;
+}
+
+.panel{
+  width:min(360px,100%);
+
+  background:white;
+
+  border-radius:28px;
+
+  padding:28px 22px;
+
+  text-align:center;
+
+  box-shadow:
+    0 15px 45px rgba(0,0,0,.55);
+}
+
+.panel h1{
+  margin:0 0 7px;
+
+  color:#17486d;
+
+  font-size:29px;
+}
+
+.panel h2{
+  margin:4px 0 15px;
+
+  color:#ff4f64;
+
+  font-size:23px;
+}
+
+.panel p{
+  color:#657487;
+
+  line-height:1.65;
+
+  margin:10px 0 22px;
+}
+
+.startBoss{
+  width:125px;
+  height:125px;
+
+  margin:5px auto 17px;
+
+  border-radius:50%;
+
+  border:5px solid #ff536b;
+
+  background-image:url("son.jpg");
+
+  background-size:430%;
+  background-position:11% 20%;
+  background-repeat:no-repeat;
+
+  box-shadow:
+    0 7px 20px rgba(0,0,0,.25);
+}
+
+.mainBtn{
+  border:0;
+
+  border-radius:18px;
+
+  width:100%;
+
+  padding:15px;
+
+  background:
+    linear-gradient(135deg,#159bea,#0761bc);
+
+  color:white;
+
+  font-size:20px;
+
+  font-weight:900;
+
+  box-shadow:
+    0 6px 0 #064b8d;
+
+  cursor:pointer;
+}
+
+.mainBtn:active{
+  transform:translateY(4px);
+
+  box-shadow:
+    0 2px 0 #064b8d;
+}
+
+.hidden{
+  display:none;
+}
+
+.small{
+  font-size:13px;
+  color:#8994a0;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+  <div class="cloud c1">☁️</div>
+  <div class="cloud c2">☁️</div>
+
+
+  <!-- HUD -->
+
+  <div class="hud">
+
+    <div class="scoreBox">
+      <div class="scoreTitle">
+        SCORE
+      </div>
+
+      <div id="score">
+        000
+      </div>
+    </div>
+
+
+    <div class="hpArea">
+
+      <div class="bossTitle">
+        😎 哥哥大魔王 HP
+      </div>
+
+      <div class="hpBar">
+
+        <div id="hpFill"></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- BOSS -->
+
+  <div id="boss">
+
+    <div id="bossFace"></div>
+
+  </div>
+
+  <div id="bossName">
+    👑 哥哥大魔王
+  </div>
+
+
+  <!-- PLAYER -->
+
+  <div id="plane">
+    ✈️
+  </div>
+
+
+  <!-- CONTROLS -->
+
+  <div class="controls">
+
+    <div class="moveButtons">
+
+      <button
+        id="leftBtn"
+        class="controlBtn"
+      >
+        ◀
+      </button>
+
+
+      <button
+        id="rightBtn"
+        class="controlBtn"
+      >
+        ▶
+      </button>
+
+    </div>
+
+
+    <button
+      id="fireBtn"
+      class="controlBtn"
+    >
+      FIRE<br>🔥
+    </button>
+
+  </div>
+
+
+  <!-- START SCREEN -->
+
+  <div
+    id="startScreen"
+    class="overlay"
+  >
+
+    <div class="panel">
+
+      <h1>
+        ✈️ AIR BATTLE
+      </h1>
+
+      <h2>
+        哥哥大魔王
+      </h2>
+
+      <div class="startBoss"></div>
+
+      <p>
+        左右移動飛機，
+        發射能量彈擊中 Boss！
+        <br>
+        每次命中 +10 分。
+      </p>
+
+      <button
+        id="startBtn"
+        class="mainBtn"
+      >
+        🎮 START GAME
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- WIN SCREEN -->
+
+  <div
+    id="winScreen"
+    class="overlay hidden"
+  >
+
+    <div class="panel">
+
+      <h1>
+        🎉 YOU WIN!
+      </h1>
+
+      <h2>
+        哥哥大魔王被擊敗啦！
+      </h2>
+
+      <div class="startBoss"></div>
+
+      <p>
+        最終得分
+        <br>
+
+        <strong
+          id="finalScore"
+          style="font-size:40px;color:#ff4c61;"
+        >
+          0
+        </strong>
+      </p>
+
+      <button
+        id="restartBtn"
+        class="mainBtn"
+      >
+        🔄 再玩一次
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================
+   ELEMENTS
+========================= */
+
+const game =
+  document.getElementById("game");
+
+const plane =
+  document.getElementById("plane");
+
+const boss =
+  document.getElementById("boss");
+
+const scoreEl =
+  document.getElementById("score");
+
+const hpFill =
+  document.getElementById("hpFill");
+
+const leftBtn =
+  document.getElementById("leftBtn");
+
+const rightBtn =
+  document.getElementById("rightBtn");
+
+const fireBtn =
+  document.getElementById("fireBtn");
+
+const startScreen =
+  document.getElementById("startScreen");
+
+const winScreen =
+  document.getElementById("winScreen");
+
+const startBtn =
+  document.getElementById("startBtn");
+
+const restartBtn =
+  document.getElementById("restartBtn");
+
+const finalScore =
+  document.getElementById("finalScore");
+
+
+/* =========================
+   GAME VARIABLES
+========================= */
+
+let score = 0;
+
+let bossHP = 100;
+
+let gameRunning = false;
+
+let planeX = 0;
+
+let moveLeft = false;
+
+let moveRight = false;
+
+let lastFire = 0;
+
+let bossDirection = 1;
+
+let bossX = 0;
+
+
+/* =========================
+   RESET
+========================= */
+
+function resetGame(){
+
+  score = 0;
+
+  bossHP = 100;
+
+  scoreEl.textContent = "000";
+
+  hpFill.style.width = "100%";
+
+  planeX =
+    window.innerWidth / 2;
+
+  plane.style.left =
+    planeX + "px";
+
+  bossX =
+    window.innerWidth / 2;
+
+  boss.style.left =
+    bossX + "px";
+
+}
+
+
+/* =========================
+   START
+========================= */
+
+function startGame(){
+
+  resetGame();
+
+  startScreen.classList.add(
+    "hidden"
+  );
+
+  winScreen.classList.add(
+    "hidden"
+  );
+
+  gameRunning = true;
+
+}
+
+
+/* =========================
+   PLAYER MOVEMENT
+========================= */
+
+function updatePlane(){
+
+  if(!gameRunning){
+    return;
+  }
+
+  const speed = 7;
+
+  if(moveLeft){
+    planeX -= speed;
+  }
+
+  if(moveRight){
+    planeX += speed;
+  }
+
+  const half =
+    plane.offsetWidth / 2;
+
+  planeX =
+    Math.max(
+      half + 8,
+      Math.min(
+        window.innerWidth - half - 8,
+        planeX
+      )
+    );
+
+  plane.style.left =
+    planeX + "px";
+
+}
+
+
+/* =========================
+   BOSS MOVEMENT
+========================= */
+
+function updateBoss(){
+
+  if(!gameRunning){
+    return;
+  }
+
+  const bossSpeed = 2.1;
+
+  bossX +=
+    bossSpeed * bossDirection;
+
+  const half =
+    boss.offsetWidth / 2;
+
+  if(
+    bossX >
+    window.innerWidth - half - 10
+  ){
+
+    bossDirection = -1;
+
+  }
+
+  if(
+    bossX <
+    half + 10
+  ){
+
+    bossDirection = 1;
+
+  }
+
+  boss.style.left =
+    bossX + "px";
+
+}
+
+
+/* =========================
+   FIRE
+========================= */
+
+function fire(){
+
+  if(!gameRunning){
+    return;
+  }
+
+  const now =
+    Date.now();
+
+  if(
+    now - lastFire < 230
+  ){
+    return;
+  }
+
+  lastFire = now;
+
+
+  const bullet =
+    document.createElement(
+      "div"
+    );
+
+  bullet.className =
+    "bullet";
+
+
+  const planeRect =
+    plane.getBoundingClientRect();
+
+  bullet.style.left =
+    (
+      planeRect.left +
+      planeRect.width / 2 -
+      6
+    )
+    + "px";
+
+  bullet.style.top =
+    (
+      planeRect.top - 15
+    )
+    + "px";
+
+
+  game.appendChild(
+    bullet
+  );
+
+
+  let bulletY =
+    planeRect.top - 15;
+
+
+  function moveBullet(){
+
+    if(
+      !gameRunning
+    ){
+
+      bullet.remove();
+
+      return;
+
+    }
+
+
+    bulletY -= 10;
+
+    bullet.style.top =
+      bulletY + "px";
+
+
+    const bulletRect =
+      bullet.getBoundingClientRect();
+
+    const bossRect =
+      boss.getBoundingClientRect();
+
+
+    const hit =
+      bulletRect.left
+        < bossRect.right
+
+      &&
+
+      bulletRect.right
+        > bossRect.left
+
+      &&
+
+      bulletRect.top
+        < bossRect.bottom
+
+      &&
+
+      bulletRect.bottom
+        > bossRect.top;
+
+
+    if(hit){
+
+      bullet.remove();
+
+      bossHit();
+
+      return;
+
+    }
+
+
+    if(
+      bulletY < -40
+    ){
+
+      bullet.remove();
+
+      return;
+
+    }
+
+
+    requestAnimationFrame(
+      moveBullet
+    );
+
+  }
+
+
+  requestAnimationFrame(
+    moveBullet
+  );
+
+}
+
+
+/* =========================
+   BOSS HIT
+========================= */
+
+function bossHit(){
+
+  if(!gameRunning){
+    return;
+  }
+
+
+  bossHP -= 10;
+
+  score += 10;
+
+
+  if(
+    bossHP < 0
+  ){
+    bossHP = 0;
+  }
+
+
+  hpFill.style.width =
+    bossHP + "%";
+
+
+  scoreEl.textContent =
+    String(score)
+    .padStart(3,"0");
+
+
+  boss.classList.remove(
+    "hit"
+  );
+
+  void boss.offsetWidth;
+
+  boss.classList.add(
+    "hit"
+  );
+
+
+  createHitText();
+
+
+  if(
+    navigator.vibrate
+  ){
+
+    navigator.vibrate(35);
+
+  }
+
+
+  if(
+    bossHP <= 0
+  ){
+
+    setTimeout(
+      winGame,
+      350
+    );
+
+  }
+
+}
+
+
+/* =========================
+   HIT TEXT
+========================= */
+
+function createHitText(){
+
+  const text =
+    document.createElement(
+      "div"
+    );
+
+  text.className =
+    "hitText";
+
+  text.textContent =
+    "+10 💥";
+
+
+  const rect =
+    boss.getBoundingClientRect();
+
+
+  text.style.left =
+    (
+      rect.left +
+      rect.width / 2 -
+      35
+    )
+    + "px";
+
+
+  text.style.top =
+    (
+      rect.top +
+      rect.height / 2
+    )
+    + "px";
+
+
+  game.appendChild(
+    text
+  );
+
+
+  setTimeout(
+    () => text.remove(),
+    700
+  );
+
+}
+
+
+/* =========================
+   WIN
+========================= */
+
+function winGame(){
+
+  gameRunning = false;
+
+  finalScore.textContent =
+    score;
+
+  winScreen.classList.remove(
+    "hidden"
+  );
+
+}
+
+
+/* =========================
+   BUTTON CONTROL
+========================= */
+
+function pressStart(
+  element,
+  direction
+){
+
+  element.addEventListener(
+    "pointerdown",
+    e => {
+
+      e.preventDefault();
+
+      if(
+        direction === "left"
+      ){
+        moveLeft = true;
+      }
+
+      if(
+        direction === "right"
+      ){
+        moveRight = true;
+      }
+
+    }
+  );
+
+
+  element.addEventListener(
+    "pointerup",
+    () => {
+
+      moveLeft = false;
+
+      moveRight = false;
+
+    }
+  );
+
+
+  element.addEventListener(
+    "pointercancel",
+    () => {
+
+      moveLeft = false;
+
+      moveRight = false;
+
+    }
+  );
+
+
+  element.addEventListener(
+    "pointerleave",
+    () => {
+
+      moveLeft = false;
+
+      moveRight = false;
+
+    }
+  );
+
+}
+
+
+pressStart(
+  leftBtn,
+  "left"
+);
+
+pressStart(
+  rightBtn,
+  "right"
+);
+
+
+/* FIRE */
+
+fireBtn.addEventListener(
+  "pointerdown",
+  e => {
+
+    e.preventDefault();
+
+    fire();
+
+  }
+);
+
+
+/* =========================
+   KEYBOARD
+========================= */
+
+document.addEventListener(
+  "keydown",
+  e => {
+
+    if(
+      e.key ===
+      "ArrowLeft"
+    ){
+      moveLeft = true;
+    }
+
+    if(
+      e.key ===
+      "ArrowRight"
+    ){
+      moveRight = true;
+    }
+
+    if(
+      e.key === " "
+    ){
+      fire();
+    }
+
+  }
+);
+
+
+document.addEventListener(
+  "keyup",
+  e => {
+
+    if(
+      e.key ===
+      "ArrowLeft"
+    ){
+      moveLeft = false;
+    }
+
+    if(
+      e.key ===
+      "ArrowRight"
+    ){
+      moveRight = false;
+    }
+
+  }
+);
+
+
+/* =========================
+   START BUTTONS
+========================= */
+
+startBtn.addEventListener(
+  "click",
+  startGame
+);
+
+
+restartBtn.addEventListener(
+  "click",
+  startGame
+);
+
+
+/* =========================
+   GAME LOOP
+========================= */
+
+function gameLoop(){
+
+  updatePlane();
+
+  updateBoss();
+
+  requestAnimationFrame(
+    gameLoop
+  );
+
+}
+
+gameLoop();
+
+
+/* =========================
+   RESIZE
+========================= */
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    planeX =
+      Math.min(
+        planeX,
+        window.innerWidth - 50
+      );
+
+  }
+);
+
+</script>
+
+</body>
+</html>
