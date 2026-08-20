@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>照片拼圖大挑戰</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial,sans-serif;
+  background:linear-gradient(180deg,#fff4f7,#eef7ff);
+  color:#364152;
+  text-align:center;
+  min-height:100vh;
+}
+
+header{
+  padding:22px 16px 14px;
+}
+
+h1{
+  margin:0;
+  font-size:28px;
+  color:#ff5f7f;
+}
+
+.subtitle{
+  margin-top:6px;
+  font-size:15px;
+  color:#7a8699;
+}
+
+.game-wrap{
+  width:min(94vw,520px);
+  margin:0 auto 28px;
+}
+
+.status{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin:12px 0;
+}
+
+.status-box{
+  background:white;
+  border-radius:16px;
+  padding:10px 6px;
+  box-shadow:0 5px 16px rgba(0,0,0,.07);
+}
+
+.status-label{
+  font-size:12px;
+  color:#8b96a8;
+}
+
+.status-value{
+  margin-top:3px;
+  font-size:19px;
+  font-weight:900;
+  color:#4c5a70;
+}
+
+#board{
+  width:100%;
+  aspect-ratio:1 / 1;
+  display:grid;
+  background:white;
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:0 10px 30px rgba(67,85,110,.16);
+  touch-action:none;
+}
+
+.tile{
+  position:relative;
+  background-image:url("IMG_9191.jpeg");
+  background-repeat:no-repeat;
+  cursor:pointer;
+  border:1px solid rgba(255,255,255,.8);
+  transition:transform .15s ease;
+}
+
+.tile:active{
+  transform:scale(.96);
+}
+
+.tile.empty{
+  background-image:none;
+  background:#f3f5f8;
+  cursor:default;
+}
+
+.controls{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-top:16px;
+}
+
+button{
+  border:none;
+  border-radius:999px;
+  padding:12px 19px;
+  font-size:16px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.primary{
+  background:#ff6684;
+  color:white;
+}
+
+.secondary{
+  background:white;
+  color:#536176;
+  box-shadow:0 4px 14px rgba(0,0,0,.08);
+}
+
+.level-info{
+  margin:12px 0 5px;
+  font-weight:800;
+  color:#66758b;
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(37,45,60,.58);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:10;
+}
+
+.modal.show{
+  display:flex;
+}
+
+.modal-card{
+  background:white;
+  width:min(90vw,380px);
+  border-radius:24px;
+  padding:28px 20px;
+  box-shadow:0 20px 50px rgba(0,0,0,.25);
+}
+
+.modal-icon{
+  font-size:58px;
+}
+
+.modal-title{
+  margin:10px 0 4px;
+  font-size:28px;
+  font-weight:900;
+  color:#ff5f7f;
+}
+
+.modal-text{
+  line-height:1.7;
+  color:#6a7689;
+  margin-bottom:18px;
+}
+
+.best{
+  margin-top:10px;
+  font-size:13px;
+  color:#8b96a8;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🧩 照片拼圖大挑戰</h1>
+  <div class="subtitle">一路挑戰到 5×5！</div>
+</header>
+
+<div class="game-wrap">
+
+  <div class="status">
+    <div class="status-box">
+      <div class="status-label">關卡</div>
+      <div class="status-value" id="levelText">1 / 3</div>
+    </div>
+
+    <div class="status-box">
+      <div class="status-label">時間</div>
+      <div class="status-value" id="timeText">00:00</div>
+    </div>
+
+    <div class="status-box">
+      <div class="status-label">移動</div>
+      <div class="status-value" id="moveText">0</div>
+    </div>
+  </div>
+
+  <div class="level-info" id="sizeText">
+    第一關：3 × 3
+  </div>
+
+  <div id="board"></div>
+
+  <div class="controls">
+    <button class="secondary" onclick="restartLevel()">🔄 重新開始</button>
+    <button class="primary" onclick="shuffleCurrent()">🎲 洗牌</button>
+  </div>
+
+  <div class="best">
+    點擊空格旁邊的拼圖即可移動
+  </div>
+
+</div>
+
+
+<div class="modal" id="levelModal">
+  <div class="modal-card">
+    <div class="modal-icon">🎉</div>
+
+    <div class="modal-title">
+      過關！
+    </div>
+
+    <div class="modal-text" id="levelResult"></div>
+
+    <button class="primary" onclick="nextLevel()">
+      下一關 ➜
+    </button>
+  </div>
+</div>
+
+
+<div class="modal" id="finishModal">
+  <div class="modal-card">
+    <div class="modal-icon">🏆</div>
+
+    <div class="modal-title">
+      全部破關！
+    </div>
+
+    <div class="modal-text" id="finishResult">
+      你完成了全部三關！
+    </div>
+
+    <button class="primary" onclick="restartGame()">
+      再玩一次
+    </button>
+  </div>
+</div>
+
+
+<script>
+
+const IMAGE_SRC = "IMG_9191.jpeg";
+
+const levels = [
+  {
+    size:3,
+    name:"第一關"
+  },
+  {
+    size:4,
+    name:"第二關"
+  },
+  {
+    size:5,
+    name:"第三關"
+  }
+];
+
+let currentLevel = 0;
+
+let size = levels[currentLevel].size;
+
+let tiles = [];
+
+let moves = 0;
+
+let seconds = 0;
+
+let timer = null;
+
+let started = false;
+
+
+
+const board = document.getElementById("board");
+
+const levelText = document.getElementById("levelText");
+
+const timeText = document.getElementById("timeText");
+
+const moveText = document.getElementById("moveText");
+
+const sizeText = document.getElementById("sizeText");
+
+
+
+function createTiles(){
+
+  size = levels[currentLevel].size;
+
+  tiles = [];
+
+  const total = size * size;
+
+  for(let i=0;i<total;i++){
+    tiles.push(i);
+  }
+
+}
+
+
+
+function render(){
+
+  board.innerHTML="";
+
+  board.style.gridTemplateColumns=`repeat(${size},1fr)`;
+
+  board.style.gridTemplateRows=`repeat(${size},1fr)`;
+
+  const total = size * size;
+
+  tiles.forEach((tileValue,index)=>{
+
+    const tile=document.createElement("div");
+
+    tile.className="tile";
+
+    if(tileValue===total-1){
+
+      tile.classList.add("empty");
+
+    }else{
+
+      const row=Math.floor(tileValue/size);
+
+      const col=tileValue%size;
+
+      tile.style.backgroundImage=`url("${IMAGE_SRC}")`;
+
+      tile.style.backgroundSize=`${size*100}% ${size*100}%`;
+
+      tile.style.backgroundPosition=
+      `${(col/(size-1))*100}% ${(row/(size-1))*100}%`;
+
+      tile.onclick=()=>moveTile(index);
+
+    }
+
+    board.appendChild(tile);
+
+  });
+
+}
+
+
+
+function moveTile(index){
+
+  const emptyValue=size*size-1;
+
+  const emptyIndex=tiles.indexOf(emptyValue);
+
+  const indexRow=Math.floor(index/size);
+
+  const indexCol=index%size;
+
+  const emptyRow=Math.floor(emptyIndex/size);
+
+  const emptyCol=emptyIndex%size;
+
+  const distance=
+  Math.abs(indexRow-emptyRow)
+  +
+  Math.abs(indexCol-emptyCol);
+
+  if(distance!==1){
+    return;
+  }
+
+  if(!started){
+    startTimer();
+    started=true;
+  }
+
+  [
+    tiles[index],
+    tiles[emptyIndex]
+  ]
+  =
+  [
+    tiles[emptyIndex],
+    tiles[index]
+  ];
+
+  moves++;
+
+  moveText.textContent=moves;
+
+  render();
+
+  if(isSolved()){
+    setTimeout(levelComplete,300);
+  }
+
+}
+
+
+
+function isSolved(){
+
+  for(let i=0;i<tiles.length;i++){
+
+    if(tiles[i]!==i){
+      return false;
+    }
+
+  }
+
+  return true;
+
+}
+
+
+
+function shuffle(){
+
+  const emptyValue=size*size-1;
+
+  for(let i=0;i<300;i++){
+
+    const emptyIndex=tiles.indexOf(emptyValue);
+
+    const row=Math.floor(emptyIndex/size);
+
+    const col=emptyIndex%size;
+
+    const possible=[];
+
+    if(row>0){
+      possible.push(emptyIndex-size);
+    }
+
+    if(row<size-1){
+      possible.push(emptyIndex+size);
+    }
+
+    if(col>0){
+      possible.push(emptyIndex-1);
+    }
+
+    if(col<size-1){
+      possible.push(emptyIndex+1);
+    }
+
+    const randomIndex=
+    possible[
+      Math.floor(
+        Math.random()*possible.length
+      )
+    ];
+
+    [
+      tiles[randomIndex],
+      tiles[emptyIndex]
+    ]
+    =
+    [
+      tiles[emptyIndex],
+      tiles[randomIndex]
+    ];
+
+  }
+
+  if(isSolved()){
+    shuffle();
+  }
+
+}
+
+
+
+function shuffleCurrent(){
+
+  stopTimer();
+
+  started=false;
+
+  moves=0;
+
+  seconds=0;
+
+  moveText.textContent="0";
+
+  timeText.textContent="00:00";
+
+  createTiles();
+
+  shuffle();
+
+  render();
+
+}
+
+
+
+function startTimer(){
+
+  stopTimer();
+
+  timer=setInterval(()=>{
+
+    seconds++;
+
+    const min=
+    String(
+      Math.floor(seconds/60)
+    ).padStart(2,"0");
+
+    const sec=
+    String(seconds%60)
+    .padStart(2,"0");
+
+    timeText.textContent=`${min}:${sec}`;
+
+  },1000);
+
+}
+
+
+
+function stopTimer(){
+
+  if(timer){
+    clearInterval(timer);
+    timer=null;
+  }
+
+}
+
+
+
+function formatTime(){
+
+  const min=
+  String(
+    Math.floor(seconds/60)
+  ).padStart(2,"0");
+
+  const sec=
+  String(
+    seconds%60
+  ).padStart(2,"0");
+
+  return `${min}:${sec}`;
+
+}
+
+
+
+function levelComplete(){
+
+  stopTimer();
+
+  playWinSound();
+
+  if(currentLevel<levels.length-1){
+
+    document.getElementById("levelResult").innerHTML=
+    `
+    完成 ${levels[currentLevel].name}！<br>
+    ⏱️ ${formatTime()}<br>
+    👆 ${moves} 次移動
+    `;
+
+    document
+    .getElementById("levelModal")
+    .classList.add("show");
+
+  }else{
+
+    document.getElementById("finishResult").innerHTML=
+    `
+    太厲害了！你完成了 3×3、4×4、5×5！<br><br>
+    最後一關<br>
+    ⏱️ ${formatTime()}<br>
+    👆 ${moves} 次移動
+    `;
+
+    document
+    .getElementById("finishModal")
+    .classList.add("show");
+
+  }
+
+}
+
+
+
+function nextLevel(){
+
+  document
+  .getElementById("levelModal")
+  .classList.remove("show");
+
+  currentLevel++;
+
+  setupLevel();
+
+}
+
+
+
+function restartLevel(){
+
+  setupLevel();
+
+}
+
+
+
+function restartGame(){
+
+  document
+  .getElementById("finishModal")
+  .classList.remove("show");
+
+  currentLevel=0;
+
+  setupLevel();
+
+}
+
+
+
+function setupLevel(){
+
+  stopTimer();
+
+  started=false;
+
+  seconds=0;
+
+  moves=0;
+
+  levelText.textContent=
+  `${currentLevel+1} / ${levels.length}`;
+
+  size=levels[currentLevel].size;
+
+  sizeText.textContent=
+  `${levels[currentLevel].name}：${size} × ${size}`;
+
+  moveText.textContent="0";
+
+  timeText.textContent="00:00";
+
+  createTiles();
+
+  shuffle();
+
+  render();
+
+}
+
+
+
+function playWinSound(){
+
+  try{
+
+    const AudioContext=
+    window.AudioContext ||
+    window.webkitAudioContext;
+
+    const ctx=new AudioContext();
+
+    const notes=[
+      523.25,
+      659.25,
+      783.99,
+      1046.50
+    ];
+
+    notes.forEach((frequency,index)=>{
+
+      const oscillator=
+      ctx.createOscillator();
+
+      const gain=
+      ctx.createGain();
+
+      oscillator.frequency.value=
+      frequency;
+
+      oscillator.type="sine";
+
+      oscillator.connect(gain);
+
+      gain.connect(ctx.destination);
+
+      const start=
+      ctx.currentTime+
+      index*.13;
+
+      gain.gain.setValueAtTime(
+        .001,
+        start
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        .25,
+        start+.02
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        .001,
+        start+.22
+      );
+
+      oscillator.start(start);
+
+      oscillator.stop(start+.24);
+
+    });
+
+  }catch(e){
+    console.log("Audio unavailable");
+  }
+
+}
+
+
+
+setupLevel();
+
+</script>
+
+</body>
+</html>
